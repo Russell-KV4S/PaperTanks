@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Blue Bic-ink tank body & treads -->
+    <path
+        android:fillColor="#DCE7FA"
+        android:strokeColor="#1442A8"
+        android:strokeWidth="3.0"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M36,42h36v26h-36z" />
+    <path
+        android:strokeColor="#1442A8"
+        android:strokeWidth="2.8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M30,38h8v34h-8z M70,38h8v34h-8z" />
+    <!-- Turret & Barrel -->
+    <path
+        android:fillColor="#BFD3F8"
+        android:strokeColor="#1442A8"
+        android:strokeWidth="2.8"
+        android:pathData="M54,46a9,9 0 1,0 0,18a9,9 0 1,0 0,-18z" />
+    <path
+        android:strokeColor="#1442A8"
+        android:strokeWidth="3.6"
+        android:strokeLineCap="round"
+        android:pathData="M54,46L54,26" />
+    <!-- Graphite streak -->
+    <path
+        android:strokeColor="#2D3035"
+        android:strokeWidth="2.4"
+        android:strokeLineCap="round"
+        android:pathData="M54,24L68,16" />
+    <!-- #2 Yellow Pencil angled across corner -->
+    <path
+        android:fillColor="#F4C430"
+        android:strokeColor="#4A3822"
+        android:strokeWidth="1.8"
+        android:strokeLineJoin="round"
+        android:pathData="M61,60L79,78L73,84L55,66z" />
+    <path
+        android:fillColor="#E7C391"
+        android:strokeColor="#4A3822"
+        android:strokeWidth="1.6"
+        android:pathData="M55,66L61,60L51,56z" />
+    <path
+        android:fillColor="#2D3035"
+        android:pathData="M55,61L53,59L51,56L54,58z" />
+    <path
+        android:fillColor="#EF7B86"
+        android:strokeColor="#4A3822"
+        android:strokeWidth="1.6"
+        android:pathData="M79,78L84,83L78,89L73,84z" />
+</vector>

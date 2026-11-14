@@ -1,0 +1,8 @@
+node_modules/
+dist/
+dist-test/
+release/
+*.jks
+*.keystore
+keystore.properties
+.DS_Store
