@@ -159,10 +159,11 @@ Pick a blue-ink tank, pull back the #2 wooden pencil, and snap it across folded 
 * **Target Audience:** `13–15, 16–17, 18 and over` (or `Everyone`, ensuring Store Listing does not specifically target young children if avoiding Families policy extra review).
 * **News / COVID-19 / Financial / Health / Government:** `No` to all.
 
-### Store Graphics Checklist (To Generate / Capture Before Production Submit)
-* **App Icon:** `512 × 512` px PNG (32-bit, max 1 MB)
-* **Feature Graphic:** `1024 × 500` px PNG or JPEG (max 15 MB)
-* **Phone Screenshots:** At least `2` portrait screenshots (e.g., `1080 × 1920` px PNG/JPEG) showing Title Cover and Active Gameplay
+### Store Graphics Checklist (Ready in `release/art/`)
+* **App Icon:** `release/art/icon-512.png` (`512 × 512` px PNG)
+* **Feature Graphic:** `release/art/feature-1024x500.png` (`1024 × 500` px PNG)
+* **itch.io Cover:** `release/art/itch-cover-630x500.png` (`630 × 500` px PNG)
+* **Phone Screenshots (`1080 × 1920` px PNG):** `01-title.png`, `02-gameplay.png`, `03-hit-and-scars.png`, `04-theme-trapper.png`, `05-theme-terminal-2p.png`
 
 ### Google Play Tip-Jar Compliance Fallback
 `src/components/SupporterModal.svelte` currently shows an optional **"Buy Me a Coffee"** link (`https://buymeacoffee.com/RussellThomas`) with **zero unlocked perks or badges**.

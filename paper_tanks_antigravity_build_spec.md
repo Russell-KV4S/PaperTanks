@@ -6,16 +6,18 @@
 ### Core Design Pillars
 * **Tactile 80s Nostalgia:** Wide-ruled notebook paper, red margin lines, three-hole punches, Bic blue/red ballpoint pen ink, graphite smudges, and crumpled paper explosion effects.
 * **Satisfying Touch Physics:** A slingshot/flick mechanic that mimics pressing a real #2 pencil down and snapping it across paper, complete with trajectory wobble, graphite friction, and ink/lead splatter.
-* **Zero-Bloat Monetization:** No banner ads, no forced video ads, and no microtransaction currencies. Monetized via a single one-time **"Supporter Edition"** unlock (additional paper/ink themes, custom tank decals, and extra campaign scenarios) + optional tip jar.
+* **Zero-Bloat Monetization:** 100% Free — zero banner ads, zero forced video ads, zero paywalls, and no microtransaction currencies. All 4 paper/ink themes and 5 unit decal sets are unlocked for free, alongside an optional external **Buy Me a Coffee** tip jar (`src/lib/config.ts`).
 
 ---
 
 ## 2. Tech Stack & Architecture
-* **Frontend Framework:** Svelte 5 (Vite + TypeScript)
-* **Rendering Engine:** HTML5 2D Canvas (60 FPS `requestAnimationFrame` loop with `devicePixelRatio` scaling for crisp retina/mobile rendering)
-* **Audio:** Web Audio API synthesized sound effects (pencil scratch on paper, eraser thud, paper crinkle explosion, ruler tap) — zero external audio asset bloat.
-* **Mobile Packaging:** Capacitor (Android build target, locked to portrait or landscape—recommend **Portrait** for natural one-handed thumb flicking).
-* **State Persistence:** `localStorage` for unlocked themes, campaign progress, and settings.
+* **Frontend Framework:** Svelte 5 (Vite 8 + TypeScript, `base: './'` for itch.io iframe/subpath compatibility)
+* **Rendering Engine:** HTML5 2D Canvas (60 FPS `requestAnimationFrame` loop with `devicePixelRatio` scaling capped at 2.5× for crisp retina/mobile rendering)
+* **Audio:** Web Audio API synthesized sound effects (pencil scratch on paper, tension ticks, eraser thud, paper crinkle explosion, ruler/deflection, victory/defeat stamps) — zero external audio asset bloat.
+* **Mobile Packaging:** Capacitor 8 Android (`com.papertanks.arcade`, `minSdk` 24 / `targetSdk` 36, locked to **Portrait** in `android/app/src/main/AndroidManifest.xml`).
+* **Web / itch.io Packaging:** Static bundle (`dist/` → `release/paper-tanks-itch.zip`), configured for `450×800` portrait HTML5 embed.
+* **State Persistence:** `localStorage` (`paper_tanks_save_v1`) for selected theme/decal, aiming control mode, mute toggle, campaign stage unlocks, and best grades.
+* **Automated Tests:** `svelte-check` + `node --test` (bundled via `esbuild`) in `tests/engine.test.ts`.
 
 ---
 
@@ -47,9 +49,9 @@
      * **Near Miss:** Leaves a permanent graphite streak across the notebook page (the battlefield visibly accumulates battle scars over the match!).
 
 ### C. Game Modes
-1. **1P Campaign ("Study Hall"): ** 10 escalating levels against an AI opponent with distinct personalities (e.g., *The Doodler*, *The Geometry Nerd*, *The Class Clown*) and unique notebook hazards.
-2. **2P Pass & Play ("Lunch Table"): ** Local two-player mode on one device. Screen rotates/flips indicator or plays seamlessly from opposite ends of the phone laid flat on a table.
-3. **Skirmish Mode:** Quick randomized 1v1 battle with selectable difficulty.
+1. **1P Campaign ("Study Hall"):** 10 escalating levels against AI opponents with distinct personalities (from *The Doodler* to *The Principal*) and unique notebook hazards, awarding `A+` through `F` report-card grades.
+2. **2P Pass & Play ("Lunch Table"):** Local two-player mode on one device. The top margin HUD automatically flips 180° (`.hud-top.flipped`) on Red's turn so players can play from opposite ends of a phone laid flat on a table.
+3. **Skirmish Mode:** Quick randomized 1v1 battle with selectable difficulty (`Easy`, `Medium`, `Hard`).
 
 ---
 
@@ -62,13 +64,13 @@
   * Styled like handwritten margin notes at the top/bottom edges of the paper (`P1: 3 LEFT`, `TURN: BLUE`, `MENU`).
   * Pause/Settings menu styled as a folded origami paper note or index card overlay.
 
-### Themes (Free vs. Supporter Unlock)
-* **Default (Free):** Classic Wide-Ruled Notebook Paper + Blue/Red Bic Ink + #2 Yellow Pencil.
-* **Supporter Edition ($2.99 One-Time IAP):**
-  * *Engineering Graph Paper:* Light blue/green 5mm grid paper + technical drafting pencil + black/teal ink.
-  * *Trapper Keeper Neon (1988):* Dark grid background + neon pink/cyan gel-pen strokes.
-  * *Green-Screen Terminal:* Retro CRT phosphor green monochrome wireframe aesthetic.
-  * *Custom Tank Decals:* Starfighter, UFO, Retro Mech, and Battleship hand-drawn unit sets.
+### Themes & Decals (All 100% Free)
+All 4 notebook themes and 5 unit decal sets have `supporterOnly: false` and are selectable in `SupporterModal.svelte` (`PAPER, INK & TIP JAR`):
+* **Wide-Ruled Notebook (`classic`):** Cream lined notebook paper + Blue/Red Bic ink + #2 yellow wooden pencil.
+* **Engineering Graph Paper (`graph`):** Light mint 5mm drafting grid + mechanical lead + teal/orange ink.
+* **Trapper Keeper Neon (1988) (`trapper`):** Dark grid background + neon cyan/pink gel-pen strokes + yellow graphite.
+* **Green-Screen Terminal (`terminal`):** Retro CRT phosphor green/amber wireframe mode.
+* **Unit Decal Sets:** `Classic Notebook` (`standard`), `Starfighters` (`starfighter`), `UFO Invasion` (`ufo`), `Retro Mechs` (`mech`), and `Paper Fleet` (`battleship`).
 
 ---
 
@@ -76,33 +78,43 @@
 ```text
 src/
 ├── lib/
+│   ├── config.ts               # Optional Buy Me a Coffee URL & toggle
 │   ├── engine/
-│   │   ├── GameEngine.ts       # Main loop, state machine, turn management
-│   │   ├── Physics.ts          # Flick velocity, friction, wobble, crease deflection
-│   │   ├── Renderer.ts         # Main canvas & offscreen scarsCanvas compositing
-│   │   ├── SketchPrimitives.ts # Hand-drawn pen line, circle, tank, and pencil renderers
-│   │   ├── AIController.ts     # Opponent shot calculation with human-like error margin
-│   │   └── SoundSynth.ts       # Web Audio API procedural pencil/paper SFX
+│   │   ├── GameEngine.ts       # Main loop, state machine, turn management, pointer controls
+│   │   ├── Physics.ts          # Flick velocity, friction, wobble, crease deflection, obstacles
+│   │   ├── Renderer.ts         # Main canvas, cached paper background, & scarsCanvas compositing
+│   │   ├── SketchPrimitives.ts # Hand-drawn pen line, circle, unit decals, obstacles, & #2 pencil
+│   │   ├── AIController.ts     # Opponent shot calculation with personality error margin
+│   │   ├── SoundSynth.ts       # Web Audio API procedural pencil/paper SFX
+│   │   └── types.ts            # Shared engine & UI TypeScript types
 │   ├── data/
-│   │   ├── levels.ts           # Campaign layouts, obstacles, and enemy placements
-│   │   └── themes.ts           # Color palettes for paper, margins, ink, and pencil
+│   │   ├── levels.ts           # 10 campaign stages, AI profiles, & skirmish generator
+│   │   └── themes.ts           # 4 paper palettes & 5 unit decal definitions
 │   └── stores/
-│       └── gameStore.ts        # Svelte state for UI overlays, scores, and unlocked themes
+│       └── gameStore.ts        # Svelte state + localStorage persistence
 ├── components/
-│   ├── GameCanvas.svelte       # Fullscreen responsive canvas + pointer/touch handlers
-│   ├── TitleOverlay.svelte     # Notebook cover title screen
+│   ├── GameCanvas.svelte       # Fullscreen responsive canvas, HUD (with 2P flip), pause card
+│   ├── TitleOverlay.svelte     # Notebook cover title screen, campaign sheet, skirmish & how-to
 │   ├── VictoryModal.svelte     # Graded "A+" / "F" red-pen stamp end-of-match screen
-│   └── SupporterModal.svelte   # Theme preview & one-time unlock screen
+│   └── SupporterModal.svelte   # Theme & decal picker + optional Buy Me a Coffee tip jar
+├── app.css                     # Global typography, paper button styles, touch-action rules
+├── main.ts                     # Svelte mount entrypoint
 └── App.svelte                  # Root layout container
+
+tests/
+└── engine.test.ts              # Unit tests for campaign stages, physics, AI, themes, & store
+
+android/                        # Capacitor 8 Android project (com.papertanks.arcade)
+docs/privacy.html               # GitHub Pages privacy policy (mirrored from PRIVACY_POLICY.md)
+release/                        # Local build outputs & store art (gitignored)
+DEPLOYMENT.md                   # Reproducible build, itch.io, & Play Console manifest
+TODO_FIXES.md                   # Current QA, store polish, and publishing checklist
 ```
 
 ---
 
-## 6. Step-by-Step Build Instructions for Antigravity
-1. **Initialize Project:** Scaffold a Svelte + TypeScript + Vite project with clean mobile viewport meta tags (`user-scalable=no`, `touch-action: none`).
-2. **Build `SketchPrimitives.ts` & `Renderer.ts`:** Create the procedural notebook background (ruled lines, red margin, fold crease, punch holes) and the hand-drawn ink tank renderer.
-3. **Implement `Physics.ts` & Touch Controls:** Wire up pointer events (`pointerdown`, `pointermove`, `pointerup`) on `GameCanvas.svelte` to render the interactive #2 pencil aiming visual and simulate the graphite skid-mark physics upon release.
-4. **Implement `scarsCanvas` & Hitboxes:** Ensure every shot permanently marks the offscreen battle-scar layer and accurately detects intersections with enemy tank bounding boxes and mid-field obstacles.
-5. **Add `AIController.ts` & Turn Loop:** Implement alternating turns (`PLAYER_AIM` -> `PROJECTILE_ANIMATING` -> `AI_THINKING` -> `AI_ANIMATING` -> `GAME_OVER`) with a smart AI that calculates angles/power plus tunable inaccuracy.
-6. **Synthesize Audio (`SoundSynth.ts`):** Add filtered white-noise bursts for pencil scratches and low-frequency thuds for flicks/hits (unlocking `AudioContext` on first user tap).
-7. **Build UI Overlays & Campaign Levels:** Create the handwritten title screen, 10 campaign stages in `levels.ts`, the red-pen "A+ / F" victory stamp modal, and the theme switcher.
+## 6. Build, Test & Release Workflow
+See [DEPLOYMENT.md](DEPLOYMENT.md) for full Windows/PowerShell commands and store metadata, and [TODO_FIXES.md](TODO_FIXES.md) for current QA and publishing status:
+1. **Type-Check & Tests:** Run `npm run check` (`svelte-check`) and bundle/run `tests/engine.test.ts` with `esbuild` + `node --test`.
+2. **Web / itch.io Build:** Run `npm run build` and archive `dist/*` into `release/paper-tanks-itch.zip`.
+3. **Android Build:** Run `npx cap sync android`, then build `bundleRelease` and `assembleDebug` in `android/`, copying the signed `.aab` to `release/paper-tanks-play.aab`.

@@ -26,7 +26,10 @@
     class="report-card"
     style="background: {theme.cardBg}; color: {theme.hudText}; border-color: {theme.cardBorder};"
   >
-    <div class="grade-circle hand-title" style="color: {theme.p2Ink}; border-color: {theme.p2Ink};">
+    <div
+      class="grade-circle hand-title"
+      style="color: {theme.p2Ink}; border-color: {theme.p2Ink}; background: {theme.cardBg};"
+    >
       {#if stats.mode === 'pass_and_play'}
         {stats.winner === 'p1' ? 'P1' : 'P2'}
       {:else}
@@ -130,7 +133,6 @@
     justify-content: center;
     font-size: 26px;
     font-weight: 900;
-    background: rgba(255, 253, 247, 0.94);
     transform: rotate(-12deg);
     box-shadow: 2px 3px 0 rgba(0, 0, 0, 0.16);
   }
