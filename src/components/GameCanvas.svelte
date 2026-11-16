@@ -83,6 +83,8 @@
 
   onDestroy(() => {
     engine?.stop();
+    // Each visit to the game screen makes a new synth; close its AudioContext
+    sound.dispose();
   });
 
   $effect(() => {
@@ -103,7 +105,11 @@
 
   function onPointerDown(e: PointerEvent) {
     if (showMenu || $gameStore.matchResult) return;
-    canvasEl.setPointerCapture(e.pointerId);
+    try {
+      canvasEl.setPointerCapture(e.pointerId);
+    } catch {
+      // Pointer already gone; aiming still works without capture
+    }
     engine?.handlePointerDown(e.clientX, e.clientY, e.pointerId);
   }
 
@@ -111,11 +117,20 @@
     engine?.handlePointerMove(e.clientX, e.clientY, e.pointerId);
   }
 
-  function onPointerUp(e: PointerEvent) {
+  function releaseCapture(e: PointerEvent) {
     if (canvasEl.hasPointerCapture(e.pointerId)) {
       canvasEl.releasePointerCapture(e.pointerId);
     }
+  }
+
+  function onPointerUp(e: PointerEvent) {
+    releaseCapture(e);
     engine?.handlePointerUp(e.pointerId);
+  }
+
+  function onPointerCancel(e: PointerEvent) {
+    releaseCapture(e);
+    engine?.handlePointerCancel(e.pointerId);
   }
 </script>
 
@@ -129,7 +144,7 @@
     onpointerdown={onPointerDown}
     onpointermove={onPointerMove}
     onpointerup={onPointerUp}
-    onpointercancel={onPointerUp}
+    onpointercancel={onPointerCancel}
   ></canvas>
 
   <!-- Minimalist Margin-Note Top HUD -->
@@ -301,10 +316,14 @@
     bottom: max(10px, env(safe-area-inset-bottom));
   }
 
+  /* Only the menu button takes touches; badges must not block aiming on the canvas */
+  .menu-btn {
+    pointer-events: auto;
+  }
+
   .hud-badge,
   .turn-pill,
   .menu-btn {
-    pointer-events: auto;
     border: 1.8px solid;
     border-radius: 4px;
     padding: 4px 9px;

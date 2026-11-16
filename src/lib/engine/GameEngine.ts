@@ -71,6 +71,10 @@ export class GameEngine {
   private aiQuip: string | null = null;
   private lastTensionTickPower = 0;
 
+  // The report card is held back briefly so the final explosion can play out.
+  private pendingMatchStats: MatchStats | null = null;
+  private matchEndTimer = 0;
+
   private aim: AimState = {
     unitId: null,
     pointerId: null,
@@ -104,6 +108,16 @@ export class GameEngine {
   public setPaused(paused: boolean): void {
     this.paused = paused;
     this.lastTimestamp = performance.now();
+    // A drag in progress must not turn into a shot once an overlay is open.
+    if (paused) this.cancelAim();
+  }
+
+  private cancelAim(): void {
+    this.aim.isDragging = false;
+    this.aim.pointerId = null;
+    this.aim.power = 0;
+    this.aim.flickVx = 0;
+    this.aim.flickVy = 0;
   }
 
   public resize(w: number, h: number): void {
@@ -178,6 +192,8 @@ export class GameEngine {
     this.p2Hits = 0;
     this.aiDecision = null;
     this.aiQuip = null;
+    this.pendingMatchStats = null;
+    this.matchEndTimer = 0;
 
     this.phase = 'PLAYER_AIM';
     this.activeTeam = 'p1';
@@ -304,25 +320,37 @@ export class GameEngine {
       }
     }
 
+    // Deliver the match result once the closing explosion has had time to play
+    if (this.phase === 'GAME_OVER' && this.pendingMatchStats) {
+      this.matchEndTimer -= dt;
+      if (this.matchEndTimer <= 0) {
+        const stats = this.pendingMatchStats;
+        this.pendingMatchStats = null;
+        if (stats.winner === 'p1') this.sound.playVictoryStamp();
+        else this.sound.playDefeatStamp();
+        this.callbacks.onMatchEnd(stats);
+      }
+    }
+
     // AI thinking countdown
     if (this.phase === 'AI_THINKING') {
       this.aiTimer -= dt * 1000;
-      if (this.aiTimer <= 0 && this.aiDecision) {
-        const shooter = this.units.find((u) => u.id === this.aiDecision?.unitId && !u.destroyed);
-        if (shooter) {
-          shooter.aimAngle = this.aiDecision.angle;
-          this.activeProjectile = createProjectile(
-            'p2',
-            shooter,
-            this.aiDecision.angle,
-            this.aiDecision.power
-          );
+      if (this.aiTimer <= 0) {
+        const decision = this.aiDecision;
+        const shooter = decision
+          ? this.units.find((u) => u.id === decision.unitId && !u.destroyed)
+          : undefined;
+        if (decision && shooter) {
+          shooter.aimAngle = decision.angle;
+          this.activeProjectile = createProjectile('p2', shooter, decision.angle, decision.power);
           this.p2Shots++;
-          this.sound.playPencilFlick(this.aiDecision.power);
+          this.sound.playPencilFlick(decision.power);
           this.phase = 'AI_ANIMATING';
           this.aiDecision = null;
           this.emitState();
         } else {
+          // No usable shot: hand the turn back instead of stalling forever
+          this.aiDecision = null;
           this.advanceTurnAfterShot();
         }
       }
@@ -392,11 +420,10 @@ export class GameEngine {
     if (p1Alive.length === 0 || p2Alive.length === 0) {
       this.phase = 'GAME_OVER';
       const winner: Team = p2Alive.length === 0 ? 'p1' : 'p2';
-      if (winner === 'p1') this.sound.playVictoryStamp();
-      else this.sound.playDefeatStamp();
-
+      this.aiQuip = null;
+      this.pendingMatchStats = this.buildMatchStats(winner, p1Alive.length, p2Alive.length);
+      this.matchEndTimer = 0.9;
       this.emitState();
-      this.callbacks.onMatchEnd(this.buildMatchStats(winner, p1Alive.length, p2Alive.length));
       return;
     }
 
@@ -475,6 +502,8 @@ export class GameEngine {
   public handlePointerDown(clientX: number, clientY: number, pointerId: number): void {
     this.sound.unlock();
     if (this.paused || this.phase !== 'PLAYER_AIM') return;
+    // A second finger must not hijack an aim that is already in progress
+    if (this.aim.isDragging) return;
 
     const pt = this.renderer.screenToArena(clientX, clientY);
     const activeUnits = this.units.filter((u) => u.team === this.activeTeam && !u.destroyed);
@@ -579,6 +608,12 @@ export class GameEngine {
     }
   }
 
+  /** The browser/OS took the touch away (system gesture, palm rejection): abort, never fire. */
+  public handlePointerCancel(pointerId: number): void {
+    if (!this.aim.isDragging || this.aim.pointerId !== pointerId) return;
+    this.cancelAim();
+  }
+
   public handlePointerUp(pointerId: number): void {
     if (!this.aim.isDragging || this.aim.pointerId !== pointerId) return;
 
@@ -602,6 +637,11 @@ export class GameEngine {
     let launchAngle = this.aim.pullAngle;
 
     if (this.controlMode === 'flick') {
+      // The finger stopped before lifting: the last measured velocity is stale, not a flick
+      if (performance.now() - this.aim.lastDragTime > 90) {
+        this.aim.flickVx = 0;
+        this.aim.flickVy = 0;
+      }
       const flickSpeed = Math.hypot(this.aim.flickVx, this.aim.flickVy);
       if (flickSpeed > 180) {
         launchAngle = Math.atan2(this.aim.flickVy, this.aim.flickVx);
@@ -655,7 +695,8 @@ export class GameEngine {
       aiAimPreview,
       activeProjectile: this.activeProjectile,
       particles: this.particles,
-      shakeAmount: this.shakeAmount,
+      // update() is what decays the shake, so it must not jitter while paused
+      shakeAmount: this.paused ? 0 : this.shakeAmount,
       time: this.elapsedTime,
       activeTeam: this.activeTeam
     });

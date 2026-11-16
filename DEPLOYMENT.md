@@ -41,8 +41,7 @@ Machine- and automation-friendly deployment specification for **Paper Tanks** ta
 ```powershell
 # 1. Type-check and unit tests
 npm run check
-npx esbuild tests/engine.test.ts --bundle --platform=node --format=esm --outfile=dist-test/engine.test.mjs
-node --test dist-test/engine.test.mjs
+npm test
 Remove-Item -Recurse -Force dist-test
 
 # 2. Build web bundle & itch.io zip

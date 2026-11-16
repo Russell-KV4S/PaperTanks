@@ -19,6 +19,16 @@ export class SoundSynth {
     }
   }
 
+  /** Release the AudioContext. Browsers cap how many can exist at once. */
+  public dispose(): void {
+    const ctx = this.ctx;
+    this.ctx = null;
+    this.noiseBuffer = null;
+    if (ctx && ctx.state !== 'closed') {
+      ctx.close().catch(() => {});
+    }
+  }
+
   private ensureContext(): AudioContext | null {
     if (this.muted) return null;
     if (!this.ctx) {
@@ -28,7 +38,7 @@ export class SoundSynth {
     }
     if (!this.noiseBuffer && this.ctx) {
       const sampleRate = this.ctx.sampleRate;
-      const length = sampleRate * 1.5;
+      const length = Math.floor(sampleRate * 1.5);
       const buffer = this.ctx.createBuffer(1, length, sampleRate);
       const data = buffer.getChannelData(0);
       for (let i = 0; i < length; i++) {

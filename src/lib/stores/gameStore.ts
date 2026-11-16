@@ -22,6 +22,9 @@ export interface AppState extends PersistentData {
 }
 
 const STORAGE_KEY = 'paper_tanks_save_v1';
+const MAX_LEVEL = 10;
+const THEME_IDS: ThemeId[] = ['classic', 'graph', 'trapper', 'terminal'];
+const DECAL_IDS: DecalStyle[] = ['standard', 'starfighter', 'ufo', 'mech', 'battleship'];
 
 const DEFAULT_PERSISTENT: PersistentData = {
   supporterUnlocked: false,
@@ -37,10 +40,25 @@ function loadPersistent(): PersistentData {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return { ...DEFAULT_PERSISTENT };
-    const parsed = JSON.parse(raw) as Partial<PersistentData>;
+    const parsed = JSON.parse(raw) as Partial<PersistentData> | null;
+    if (!parsed || typeof parsed !== 'object') return { ...DEFAULT_PERSISTENT };
+    // Never trust stored values: an unknown theme id would crash every screen on load.
+    const level = Math.floor(Number(parsed.highestLevelUnlocked));
     return {
-      ...DEFAULT_PERSISTENT,
-      ...parsed
+      supporterUnlocked: parsed.supporterUnlocked === true,
+      themeId: THEME_IDS.includes(parsed.themeId as ThemeId)
+        ? (parsed.themeId as ThemeId)
+        : DEFAULT_PERSISTENT.themeId,
+      decalStyle: DECAL_IDS.includes(parsed.decalStyle as DecalStyle)
+        ? (parsed.decalStyle as DecalStyle)
+        : DEFAULT_PERSISTENT.decalStyle,
+      controlMode: parsed.controlMode === 'flick' ? 'flick' : 'slingshot',
+      muted: parsed.muted === true,
+      highestLevelUnlocked: Number.isFinite(level) ? Math.max(1, Math.min(MAX_LEVEL, level)) : 1,
+      levelGrades:
+        parsed.levelGrades && typeof parsed.levelGrades === 'object' && !Array.isArray(parsed.levelGrades)
+          ? { ...parsed.levelGrades }
+          : {}
     };
   } catch {
     return { ...DEFAULT_PERSISTENT };
@@ -134,7 +152,7 @@ function createGameStore() {
           if (!prev || (gradeRank[stats.grade] ?? 0) > (gradeRank[prev] ?? 0)) {
             next.levelGrades = { ...s.levelGrades, [stats.levelId]: stats.grade };
           }
-          if (stats.levelId >= s.highestLevelUnlocked && stats.levelId < 10) {
+          if (stats.levelId >= s.highestLevelUnlocked && stats.levelId < MAX_LEVEL) {
             next.highestLevelUnlocked = stats.levelId + 1;
           }
         }

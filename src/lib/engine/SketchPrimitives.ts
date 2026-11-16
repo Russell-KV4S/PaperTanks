@@ -11,6 +11,26 @@ export function mulberry32(seed: number): () => number {
   };
 }
 
+/**
+ * `ctx.roundRect` is missing on older WebViews / Safari (< Chrome 99, < Safari 16).
+ * Calling it there throws inside the frame loop and freezes the whole game,
+ * so fall back to a plain rectangle path.
+ */
+function roundRectPath(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  radii: number | number[]
+): void {
+  if (typeof ctx.roundRect === 'function') {
+    ctx.roundRect(x, y, w, h, radii);
+  } else {
+    ctx.rect(x, y, w, h);
+  }
+}
+
 export function drawSketchLine(
   ctx: CanvasRenderingContext2D,
   x1: number,
@@ -519,7 +539,7 @@ export function drawObstacle(
       // Drop shadow
       ctx.fillStyle = 'rgba(0,0,0,0.14)';
       ctx.beginPath();
-      ctx.roundRect(-hw + 3, -hh + 4, w, h, 4);
+      roundRectPath(ctx, -hw + 3, -hh + 4, w, h, 4);
       ctx.fill();
 
       // Eraser body (skewed parallelogram look)
@@ -527,7 +547,7 @@ export function drawObstacle(
       ctx.strokeStyle = theme.eraserAccent;
       ctx.lineWidth = 2.2;
       ctx.beginPath();
-      ctx.roundRect(-hw, -hh, w, h, 4);
+      roundRectPath(ctx, -hw, -hh, w, h, 4);
       ctx.fill();
       ctx.stroke();
 
@@ -686,7 +706,7 @@ export function drawWoodenPencil(
   const eraserStart = bodyEnd - ferruleLen;
   ctx.fillStyle = theme.pencilEraser;
   ctx.beginPath();
-  ctx.roundRect(eraserStart - 11, -5.3, 11, 10.6, [3, 0, 0, 3]);
+  roundRectPath(ctx, eraserStart - 11, -5.3, 11, 10.6, [3, 0, 0, 3]);
   ctx.fill();
   ctx.stroke();
 

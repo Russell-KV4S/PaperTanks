@@ -61,8 +61,10 @@ export class Renderer {
 
   public resize(viewWidth: number, viewHeight: number): ViewportTransform {
     this.dpr = Math.min(window.devicePixelRatio || 1, 2.5);
-    const w = Math.max(320, viewWidth);
-    const h = Math.max(480, viewHeight);
+    // Fit the real container. Forcing a larger minimum pushed part of the arena
+    // (and the player's own units) off-screen in short or narrow viewports.
+    const w = Math.max(1, viewWidth);
+    const h = Math.max(1, viewHeight);
 
     this.mainCanvas.width = Math.round(w * this.dpr);
     this.mainCanvas.height = Math.round(h * this.dpr);
@@ -262,7 +264,15 @@ export class Renderer {
         pCtx.moveTo(x, topEdge);
         pCtx.lineTo(x, botEdge);
       }
+      for (let x = -majorStep; x >= leftEdge; x -= majorStep) {
+        pCtx.moveTo(x, topEdge);
+        pCtx.lineTo(x, botEdge);
+      }
       for (let y = 0; y <= botEdge; y += majorStep) {
+        pCtx.moveTo(leftEdge, y);
+        pCtx.lineTo(rightEdge, y);
+      }
+      for (let y = -majorStep; y >= topEdge; y -= majorStep) {
         pCtx.moveTo(leftEdge, y);
         pCtx.lineTo(rightEdge, y);
       }
@@ -279,13 +289,13 @@ export class Renderer {
       }
       pCtx.strokeStyle = theme.ruleLineColor;
       pCtx.lineWidth = 1.1;
-      for (let x = 56; x <= rightEdge; x += 56) {
+      for (let x = 56 * Math.ceil(leftEdge / 56); x <= rightEdge; x += 56) {
         pCtx.beginPath();
         pCtx.moveTo(x, topEdge);
         pCtx.lineTo(x, botEdge);
         pCtx.stroke();
       }
-      for (let y = 56; y <= botEdge; y += 56) {
+      for (let y = 56 * Math.ceil(topEdge / 56); y <= botEdge; y += 56) {
         pCtx.beginPath();
         pCtx.moveTo(leftEdge, y);
         pCtx.lineTo(rightEdge, y);
